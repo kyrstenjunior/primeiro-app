@@ -55,29 +55,43 @@ export class TasksService {
   }
 
   async create(createTaskDto: CreateTaskDto) {
-    const newTask = await this.prisma.task.create({
-      data: {
-        name: createTaskDto.name,
-        description: createTaskDto.description,
-        completed: false
-      }
-    });
-
-    return newTask;
+    try {
+      const newTask = await this.prisma.task.create({
+        data: {
+          userId: createTaskDto.userId,
+          name: createTaskDto.name,
+          description: createTaskDto.description,
+          completed: false
+        }
+      });
+  
+      return newTask;
+    } catch (error) {
+      console.log(error);
+      throw new HttpException("Erro ao criar a tarefa", HttpStatus.BAD_REQUEST);
+    }
   }
 
   async update(id: number, updateTaskDto: UpdateTaskDto) {
     try {
-      const task = await this.prisma.task.update({
+      const taskExists = await this.prisma.task.findFirst({
         where: {
           id: id
-        },
-        data: updateTaskDto
+        }
       });
-  
-      if (!task) {
-        throw new HttpException("Essa tarefa não existe!", HttpStatus.NOT_FOUND);
-      }
+      
+      if (!taskExists) throw new HttpException("Essa tarefa não existe!", HttpStatus.NOT_FOUND);
+
+      const task = await this.prisma.task.update({
+        where: {
+          id: taskExists.id
+        },
+        data: {
+          name: updateTaskDto?.name ? updateTaskDto?.name : taskExists.name,
+          description: updateTaskDto?.description ? updateTaskDto?.description : taskExists.description,
+          completed: updateTaskDto?.completed ? updateTaskDto?.completed : taskExists.completed
+        }
+      });
   
       return task; 
     } catch (error) {

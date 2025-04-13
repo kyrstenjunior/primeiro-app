@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, ParseIntPipe, Patch, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 
 import { TasksService } from './tasks.service';
 
@@ -10,16 +10,30 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { LoggerInterceptor } from 'src/common/interceptors/logger.interceptor';
 import { BodyCreateTaskInterceptor } from 'src/common/interceptors/body-create-task.interceptor';
 import { AddHeaderInterceptor } from 'src/common/interceptors/add-header.interceptor';
+import { AuthAdminGuard } from 'src/common/guards/admin.guard';
+import { TaskUtils } from './tasks.utils';
 
 @Controller('tasks')
+// @UseGuards(AuthAdminGuard)
 export class TasksController {
 
-  constructor(private readonly taskService: TasksService){}
+  constructor(
+    private readonly taskService: TasksService,
+    private readonly taskUtil: TaskUtils,
+
+    @Inject("KEY_TOKEN")
+    private readonly keyToken: string
+  ){}
 
   @Get()
   @UseInterceptors(LoggerInterceptor)
   @UseInterceptors(AddHeaderInterceptor)
+  @UseGuards(AuthAdminGuard)
   findAllTasks(@Query() paginationDto: PaginationDto) {
+
+    console.log(this.taskUtil.splitString("Aprender NestJS do Zero")); // Injeção de dependência
+    console.log(this.keyToken); // Injeção de dependência
+    
     return this.taskService.findAll(paginationDto);
   }
 
