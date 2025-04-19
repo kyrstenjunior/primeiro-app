@@ -3,6 +3,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { PayloadTokenDto } from 'src/auth/dto/payload-token.dto';
 
 @Injectable()
 export class TasksService {
@@ -54,11 +55,11 @@ export class TasksService {
     // throw new NotFoundException("Esta tarefa não existe");
   }
 
-  async create(createTaskDto: CreateTaskDto) {
+  async create(createTaskDto: CreateTaskDto, tokenPayload: PayloadTokenDto) {
     try {
       const newTask = await this.prisma.task.create({
         data: {
-          userId: createTaskDto.userId,
+          userId: tokenPayload.sub,
           name: createTaskDto.name,
           description: createTaskDto.description,
           completed: false
@@ -72,7 +73,7 @@ export class TasksService {
     }
   }
 
-  async update(id: number, updateTaskDto: UpdateTaskDto) {
+  async update(id: number, updateTaskDto: UpdateTaskDto, tokenPayload: PayloadTokenDto) {
     try {
       const taskExists = await this.prisma.task.findFirst({
         where: {
@@ -81,6 +82,8 @@ export class TasksService {
       });
       
       if (!taskExists) throw new HttpException("Essa tarefa não existe!", HttpStatus.NOT_FOUND);
+
+      if(taskExists.id !== tokenPayload.sub) throw new HttpException("Essa tarefa não existe!", HttpStatus.NOT_FOUND);
 
       const task = await this.prisma.task.update({
         where: {
@@ -99,15 +102,15 @@ export class TasksService {
     }
   }
 
-  async delete(id: number) {
+  async delete(id: number, tokenPayload: PayloadTokenDto) {
     try {
       const task = await this.prisma.task.delete({
         where: { id: id }
       });
   
-      if (!task) {
-        throw new HttpException("Essa tarefa não existe!", HttpStatus.NOT_FOUND);
-      }
+      if (!task) throw new HttpException("Essa tarefa não existe!", HttpStatus.NOT_FOUND);
+
+      if(task.id !== tokenPayload.sub) throw new HttpException("Falha ao deletar esta tarefa!", HttpStatus.BAD_REQUEST);
   
       return { message: "Tarefa deletada com sucesso" };
     } catch (error) {

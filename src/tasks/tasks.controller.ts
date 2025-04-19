@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Inject, Param, ParseIntPipe, Patch, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 
 import { TasksService } from './tasks.service';
 
@@ -7,14 +7,12 @@ import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
-import { LoggerInterceptor } from 'src/common/interceptors/logger.interceptor';
-import { BodyCreateTaskInterceptor } from 'src/common/interceptors/body-create-task.interceptor';
-import { AddHeaderInterceptor } from 'src/common/interceptors/add-header.interceptor';
-import { AuthAdminGuard } from 'src/common/guards/admin.guard';
 import { TaskUtils } from './tasks.utils';
+import { AuthTokenGuard } from 'src/auth/guard/auth-token.guard';
+import { TokenPayloadParam } from 'src/auth/param/token-payload.param';
+import { PayloadTokenDto } from 'src/auth/dto/payload-token.dto';
 
 @Controller('tasks')
-// @UseGuards(AuthAdminGuard)
 export class TasksController {
 
   constructor(
@@ -26,14 +24,7 @@ export class TasksController {
   ){}
 
   @Get()
-  @UseInterceptors(LoggerInterceptor)
-  @UseInterceptors(AddHeaderInterceptor)
-  @UseGuards(AuthAdminGuard)
   findAllTasks(@Query() paginationDto: PaginationDto) {
-
-    console.log(this.taskUtil.splitString("Aprender NestJS do Zero")); // Injeção de dependência
-    console.log(this.keyToken); // Injeção de dependência
-    
     return this.taskService.findAll(paginationDto);
   }
 
@@ -42,22 +33,34 @@ export class TasksController {
     return this.taskService.findOne(id);
   }
 
+  @UseGuards(AuthTokenGuard)
   @Post()
-  @UseInterceptors(BodyCreateTaskInterceptor)
-  createTask(@Body() createTaskDto: CreateTaskDto) {
-    return this.taskService.create(createTaskDto);
+  createTask(
+    @Body() createTaskDto: CreateTaskDto,
+    @TokenPayloadParam() tokenPayload: PayloadTokenDto
+  ) {
+    return this.taskService.create(createTaskDto, tokenPayload);
   }
 
   // Método PUT serve para atualizar algo por inteiro, por exemplo a tarefa toda.
   // Já o método PATCH serve para atualizar uma parte da tarefa, por exemplo, o nome.
 
+  @UseGuards(AuthTokenGuard)
   @Patch(":id")
-  updateTask(@Param("id", ParseIntPipe) id: number, @Body() updateTaskDto: UpdateTaskDto) {
-    return this.taskService.update(id, updateTaskDto);
+  updateTask(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() updateTaskDto: UpdateTaskDto,
+    @TokenPayloadParam() tokenPayload: PayloadTokenDto
+  ) {
+    return this.taskService.update(id, updateTaskDto, tokenPayload);
   }
 
+  @UseGuards(AuthTokenGuard)
   @Delete(":id")
-  deleteTask(@Param("id", ParseIntPipe) id: number) {
-    return this.taskService.delete(id);
+  deleteTask(
+    @Param("id", ParseIntPipe) id: number,
+    @TokenPayloadParam() tokenPayload: PayloadTokenDto
+  ) {
+    return this.taskService.delete(id, tokenPayload);
   }
 }

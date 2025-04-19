@@ -21,11 +21,12 @@ export class AuthService {
     async authenticate(signInDto: SignInDto) {
         const user = await this.prisma.user.findFirst({
             where: {
-                email: signInDto.email
+                email: signInDto.email,
+                active: true
             }
         });
 
-        if(!user) throw new HttpException("Falha ao fazer o login", HttpStatus.UNAUTHORIZED);
+        if(!user) throw new HttpException("Falha ao autenticar o usuário", HttpStatus.UNAUTHORIZED);
 
         const passwordIsValid = await this.hashingService.compare(signInDto.password, user.passwordHash);
 
@@ -48,6 +49,7 @@ export class AuthService {
             id: user.id,
             name: user.name,
             email: user.email,
+            avatar: user.avatar,
             token: token
         }
     }

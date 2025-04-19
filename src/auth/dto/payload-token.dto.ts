@@ -1,4 +1,4 @@
-export class PayloadDto {
+export class PayloadTokenDto {
     sub: number;
     email: string;
     iat: number;
