@@ -27,11 +27,22 @@ describe("UsersService", () => {
                 UsersService,
                 {
                     provide: PrismaService,
-                    useValue: {}
+                    useValue: {
+                        user: {
+                            create: jest.fn().mockResolvedValue({
+                                id: 1,
+                                name: "Junior",
+                                email: "teste@teste.com"
+                            }),
+                            findFirst: jest.fn()
+                        }
+                    }
                 },
                 {
                     provide: HashingServiceProtocol,
-                    useValue: {}
+                    useValue: {
+                        hash: jest.fn()
+                    }
                 }
             ]
         }).compile();
@@ -44,12 +55,56 @@ describe("UsersService", () => {
     it("should be define users service", () => expect(usersService).toBeDefined());
 
     it("should create a new user", async () => {
+        // Arrange
         const createUserDto: CreateUserDto = {
             name: "Junior",
             email: "teste@teste.com",
             password: "123123"
         }
 
-        await usersService.create(createUserDto);
+        jest.spyOn(hashingService, "hash").mockResolvedValue("HASH_MOCK_EXEMPLO")
+
+        // Action
+        const result = await usersService.create(createUserDto);
+
+        // Assert
+        expect(hashingService.hash).toHaveBeenCalled();
+        expect(prismaService.user.create).toHaveBeenCalledWith({
+            data: {
+                name: createUserDto.name,
+                email: createUserDto.email,
+                passwordHash: "HASH_MOCK_EXEMPLO",
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true
+            }
+        });
+        expect(result).toEqual({
+            id: 1,
+            name: createUserDto.name,
+            email: createUserDto.email
+        })
+    })
+
+    it("should return a user when found", async () => {
+        // Arrange
+        const mockUser = {
+            id: 1,
+            name: "Junior",
+            passwordHash: "hash_exemplo",
+            email: "teste@teste.com",
+            active: true,
+            avatar: null,
+            createdAt: new Date(),
+            Task: [],
+        }
+
+        jest.spyOn(prismaService.user, "findFirst").mockResolvedValue(mockUser);
+
+        // Action
+        const result = await usersService.findOne(1);
+        console.log(result);
     })
 });
